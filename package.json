@@ -15,6 +15,7 @@
     "nodemon": "^1.18.10"
   },
   "dependencies": {
-    "graphql-yoga": "^1.17.4"
+    "graphql-yoga": "^1.17.4",
+    "uuid": "^3.3.2"
   }
 }
