@@ -1,5 +1,6 @@
 import { GraphQLServer } from "graphql-yoga";
 import uuidv4 from "uuid/v4";
+import nanoid from "nanoid";
 
 // We have the following Scalar Types below
 // -------> String, Boolean, Int, Float, ID
@@ -382,11 +383,33 @@ const typeDefs = `
 
   # Mutation is a type in GraphQL for Create, Update, Delete
   type Mutation {
-    createUser(name: String!, email: String!, age: Int): User!
-    createPost(title: String!, body: String!, published: Boolean!, userId: ID!): Posts!
-    createComment(commentText: String!, post: ID!, authorId: ID!): Comments!
+    createUser(userData: CreateUserInput): User!
+    createPost(postData: CreatePostInput): Posts!
+    createComment(commentData: CreateCommentInput): Comments!
   }
 
+  # Input Types
+  input CreateUserInput {
+    name: String!
+    email: String!
+    age: Int
+  }
+
+  input CreatePostInput {
+    title: String!
+    body: String!
+    published: Boolean!
+    userId: ID!
+  }
+
+  input CreateCommentInput {
+    commentText: String!
+    post: ID!
+    authorId: ID!
+  }
+
+
+  # Custom Types
   type Comments {
     id: ID!
     commentText: String!
@@ -418,6 +441,8 @@ const typeDefs = `
 
 // Resolvers
 const resolvers = {
+  // Start
+  // Query
   Query: {
     comments() {
       return dummyComments;
@@ -461,26 +486,30 @@ const resolvers = {
 
   // Mutations
   Mutation: {
+    // Creating the Users
     createUser(parent, args, ctx, info) {
       const emailTaken = dummyUsers.some(user => {
-        return user.email === args.email;
+        return user.email === args.userData.email;
       });
       if (emailTaken) {
         throw new Error("Email is already taken");
       }
+
       const user = {
-        id: uuidv4(),
-        name: args.name,
-        email: args.email,
-        age: args.age
+        id: nanoid(2),
+        // name: args.name,
+        // email: args.email,
+        // age: args.age
+        ...args.userData
       };
 
       dummyUsers.push(user);
       return user;
     },
+    // Creating the post by the existed user
     createPost(parent, args, ctx, info) {
       const userExists = dummyUsers.some(user => {
-        return user.id === args.userId;
+        return user.id === args.postData.userId;
       });
 
       if (!userExists) {
@@ -488,80 +517,93 @@ const resolvers = {
       }
 
       const post = {
-        id: uuidv4(),
-        title: args.title,
-        body: args.body,
-        published: args.published,
-        userId: args.userId
+        id: nanoid(2),
+        // title: args.title,
+        // body: args.body,
+        // published: args.published,
+        // userId: args.userId
+        ...args.postData
       };
 
       dummyPosts.push(post);
       return post;
     },
+    // Creating the comment for the post by the existing user
     createComment(parent, args, ctx, info) {
       const userExists = dummyUsers.some(user => {
-        return user.id === args.authorId;
+        return user.id === args.commentData.authorId;
       });
 
       const postExists = dummyPosts.find(post => {
-        return post.id === args.post;
+        return post.id === args.commentData.post && post.published;
       });
 
       if (!userExists || !postExists) {
-        throw new Error("User/Post Not Found");
+        throw new Error("User/Post/Post Not Published Not Found");
       }
 
       const comment = {
-        id: uuidv4(),
-        commentText: args.commentText,
-        authorId: args.authorId,
-        post: args.post
+        id: nanoid(2),
+        // commentText: args.commentText,
+        // authorId: args.authorId,
+        // post: args.post
+        ...args.commentData
       };
       dummyComments.push(comment);
       return comment;
     }
   },
+  // End
 
-  // Getting Individual user type data in posts for fetching the author userId this is outside of the Query global property
-
+  // Start
+  // Getting Individual user type data in posts for fetching the author userId (----this is outside of the Query global property----)
+  // 1. Custom Comments Type
   Comments: {
+    // author is inside of the custom Comments type
     author(parent, args, ctx, info) {
       return dummyUsers.filter(user => {
         return user.id === parent.authorId;
       });
     },
+    // posts is inside of the custom Comments type
     posts(parent, args, ctx, info) {
       return dummyPosts.find(post => {
         return post.id === parent.post;
       });
     }
   },
-
+  // 2. Custom Posts Type
   Posts: {
+    // author is inside of the custom Posts type
     author(parent, args, ctx, info) {
       return dummyUsers.find(user => {
         // Here parent argument refers to the dummyposts array objects of each for every iteration
         return user.id === parent.userId;
       });
     },
+    // comments is inside of the custom Posts type
     comments(parent, args, ctx, info) {
       return dummyComments.filter(comment => {
         return comment.post === parent.id;
       });
     }
   },
+  // 3. Custom User Type
   User: {
+    // posts is inside of the custom User type
     posts(parent, args, ctx, info) {
       return dummyPosts.filter(post => {
         return post.userId === parent.id;
       });
     },
+    // comments is inside of the custom User type
     comments(parent, args, ctx, info) {
       return dummyComments.filter(comment => {
         return comment.authorId === parent.id;
       });
     }
   }
+  // End
 };
 
 const server = new GraphQLServer({
