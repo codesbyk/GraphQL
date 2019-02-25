@@ -6,7 +6,7 @@ import nanoid from "nanoid";
 // -------> String, Boolean, Int, Float, ID
 
 // Demo User Data
-const dummyUsers = [
+let dummyUsers = [
   {
     id: 1,
     name: "Leanne Graham",
@@ -69,7 +69,7 @@ const dummyUsers = [
   }
 ];
 
-const dummyPosts = [
+let dummyPosts = [
   {
     userId: 1,
     id: 1,
@@ -298,7 +298,7 @@ const dummyPosts = [
   }
 ];
 
-const dummyComments = [
+let dummyComments = [
   {
     id: 1,
     authorId: 1,
@@ -384,8 +384,11 @@ const typeDefs = `
   # Mutation is a type in GraphQL for Create, Update, Delete
   type Mutation {
     createUser(userData: CreateUserInput): User!
+    deleteUser(id: ID!): User!
     createPost(postData: CreatePostInput): Posts!
+    deletePost(id: ID!): Posts!
     createComment(commentData: CreateCommentInput): Comments!
+    deleteComment(id: ID!): Comments!
   }
 
   # Input Types
@@ -506,6 +509,32 @@ const resolvers = {
       dummyUsers.push(user);
       return user;
     },
+    // Deleting the User
+    deleteUser(parent, args, ctx, info) {
+      const userIndex = dummyUsers.findIndex(user => {
+        return user.id === args.id;
+      });
+      if (userIndex === -1) {
+        throw new Error("User not found..!");
+      }
+      const deletedUsers = dummyUsers.splice(userIndex, 1);
+
+      dummyPosts = dummyPosts.filter(post => {
+        const match = post.userId === args.id;
+
+        if (match) {
+          dummyComments = dummyComments.filter(comment => {
+            return comment.post !== post.userId;
+          });
+        }
+
+        return !match;
+      });
+      dummyComments = dummyComments.filter(comment => {
+        return comment.authorId !== args.id;
+      });
+      return deletedUsers[0];
+    },
     // Creating the post by the existed user
     createPost(parent, args, ctx, info) {
       const userExists = dummyUsers.some(user => {
@@ -527,6 +556,23 @@ const resolvers = {
 
       dummyPosts.push(post);
       return post;
+    },
+    // Deleting the Post
+    deletePost(parent, args, ctx, info) {
+      const postIndex = dummyPosts.findIndex(post => {
+        return post.id === args.id;
+      });
+      if (postIndex === -1) {
+        throw new Error("Post not Exists..!");
+      }
+
+      const deletedPosts = dummyPosts.splice(postIndex, 1);
+
+      dummyComments = dummyComments.filter(comment => {
+        return comment.post !== args.id;
+      });
+
+      return deletedPosts[0];
     },
     // Creating the comment for the post by the existing user
     createComment(parent, args, ctx, info) {
@@ -551,6 +597,20 @@ const resolvers = {
       };
       dummyComments.push(comment);
       return comment;
+    },
+    // Deleting the Comment
+    deleteComment(parent, args, ctx, info) {
+      const commentIndex = dummyComments.findIndex(comment => {
+        return comment.id === args.id;
+      });
+
+      if (commentIndex === -1) {
+        throw new Error("Comment not found...!");
+      }
+
+      const deletedComments = dummyComments.splice(commentIndex, 1);
+
+      return deletedComments[0];
     }
   },
   // End
