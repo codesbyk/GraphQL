@@ -1,0 +1,101 @@
+# Type Definitions [schema]
+
+# We have the following Scalar Types below
+# -------> String, Boolean, Int, Float, ID
+
+# Query is a type in GraphQL for fetching Data
+type Query {
+  comments: [Comments!]!
+  posts(searchQuery: String): [Posts!]!
+  users(searchQuery: String): [User!]!
+}
+
+# Mutation is a type in GraphQL for Create, Update, Delete
+type Mutation {
+  # Creating User
+  createUser(userData: CreateUserInput): User!
+
+  # Updating User
+  updateUser(id: ID!, userData: UpdateUserInput!): User!
+
+  # Deleting User
+  deleteUser(id: ID!): User!
+
+  # Creating Post
+  createPost(postData: CreatePostInput): Posts!
+
+  # Updating Post
+  updatePost(id: ID!, postData: UpdatePostInput!): Posts!
+
+  # Deleting Post
+  deletePost(id: ID!): Posts!
+
+  # Creating Comment
+  createComment(commentData: CreateCommentInput): Comments!
+
+  # Updating Comment
+  updateComment(id: ID!): Comments!
+
+  # Deleting Comment
+  deleteComment(id: ID!): Comments!
+}
+
+# Input Types
+input CreateUserInput {
+  name: String!
+  email: String!
+  age: Int
+}
+
+input UpdateUserInput {
+  name: String
+  email: String
+  age: Int
+}
+
+input CreatePostInput {
+  title: String!
+  body: String!
+  published: Boolean!
+  userId: ID!
+}
+
+input UpdatePostInput {
+  title: String
+  body: String
+  published: Boolean
+}
+
+input CreateCommentInput {
+  commentText: String!
+  post: ID!
+  authorId: ID!
+}
+
+# Custom Types
+type Comments {
+  id: ID!
+  commentText: String!
+  author: [User!]!
+  posts: Posts!
+}
+
+type Posts {
+  userId: ID!
+  id: ID!
+  title: String!
+  body: String!
+  published: Boolean
+  author: User!
+  comments: [Comments]!
+}
+
+#This is to retrive the user info
+type User {
+  id: ID!
+  name: String!
+  email: String!
+  age: Int
+  posts: [Posts!]!
+  comments: [Comments!]!
+}
