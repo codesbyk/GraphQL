@@ -34,10 +34,15 @@ type Mutation {
   createComment(commentData: CreateCommentInput): Comments!
 
   # Updating Comment
-  updateComment(id: ID!): Comments!
+  updateComment(id: ID!, commentData: UpdateCommentInput!): Comments!
 
   # Deleting Comment
   deleteComment(id: ID!): Comments!
+}
+
+type Subscription {
+  comment(postId: ID!): Comments!
+  post: PostsSubscriptionPayload!
 }
 
 # Input Types
@@ -72,6 +77,10 @@ input CreateCommentInput {
   authorId: ID!
 }
 
+input UpdateCommentInput {
+  commentText: String
+}
+
 # Custom Types
 type Comments {
   id: ID!
@@ -98,4 +107,9 @@ type User {
   age: Int
   posts: [Posts!]!
   comments: [Comments!]!
+}
+
+type PostsSubscriptionPayload {
+  mutation: String!
+  data: Posts!
 }

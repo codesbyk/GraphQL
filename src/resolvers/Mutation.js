@@ -83,7 +83,7 @@ const Mutation = {
     return deletedUsers[0];
   },
   // Creating the post by the existed user
-  createPost(parent, args, { db }, info) {
+  createPost(parent, args, { db, pubsub }, info) {
     const userExists = db.dummyUsers.some(user => {
       return user.id === args.postData.userId;
     });
@@ -102,6 +102,14 @@ const Mutation = {
     };
 
     db.dummyPosts.push(post);
+    if (args.postData.published) {
+      pubsub.publish("post", {
+        post: {
+          mutation: "CREATED",
+          data: post
+        }
+      });
+    }
     return post;
   },
 
@@ -109,21 +117,27 @@ const Mutation = {
   updatePost(parent, args, { db }, info) {
     const { id, postData } = args;
 
-    const postExists = db.dummyPosts.find(post => {
+    const post = db.dummyPosts.find(post => {
       return post.id === id;
     });
 
-    if (!postExists) {
+    if (!post) {
       throw new Error("Post not exists..!");
     }
 
-    const post = {
-      ...postData
-    };
+    if (typeof postData.title === "string") {
+      post.title = postData.title;
+    }
 
-    console.log(db.dummyPosts);
+    if (typeof postData.body === "string") {
+      post.body = postData.body;
+    }
 
-    console.log(post);
+    if (typeof postData.published === "boolean") {
+      post.published = postData.published;
+    }
+
+    return post;
   },
 
   // Deleting the Post
@@ -144,7 +158,7 @@ const Mutation = {
     return deletedPosts[0];
   },
   // Creating the comment for the post by the existing user
-  createComment(parent, args, { db }, info) {
+  createComment(parent, args, { db, pubsub }, info) {
     const userExists = db.dummyUsers.some(user => {
       return user.id === args.commentData.authorId;
     });
@@ -165,8 +179,31 @@ const Mutation = {
       ...args.commentData
     };
     db.dummyComments.push(comment);
+    pubsub.publish(`comment ${args.commentData.post}`, {
+      comment: comment
+    });
     return comment;
   },
+
+  // Updating the comment
+  updateComment(parent, args, { db }, info) {
+    const { id, commentData } = args;
+
+    const comment = db.dummyComments.find(comment => {
+      return comment.id === id;
+    });
+
+    if (!comment) {
+      throw new Error("Comment not Found...!");
+    }
+
+    if (typeof commentData.commentText === "string") {
+      comment.commentText = commentData.commentText;
+    }
+
+    return comment;
+  },
+
   // Deleting the Comment
   deleteComment(parent, args, { db }, info) {
     const commentIndex = db.dummyComments.findIndex(comment => {

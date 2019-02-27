@@ -1,4 +1,4 @@
-import { GraphQLServer } from "graphql-yoga";
+import { GraphQLServer, PubSub } from "graphql-yoga";
 
 import db from "./db";
 
@@ -8,15 +8,20 @@ import User from "./resolvers/User";
 import Posts from "./resolvers/Posts";
 import Comments from "./resolvers/Comments";
 
+import Subscription from "./resolvers/Subscription";
+
 // Type Definitions [schema]
 // const typeDefs = `
 
 //   `;
 
+const pubsub = new PubSub();
+
 // Resolvers
 const resolvers = {
   Query: Query,
   Mutation: Mutation,
+  Subscription: Subscription,
   User: User,
   Posts: Posts,
   Comments: Comments
@@ -26,7 +31,8 @@ const server = new GraphQLServer({
   typeDefs: "./src/schema.graphql",
   resolvers: resolvers,
   context: {
-    db: db
+    db: db,
+    pubsub: pubsub
   }
 });
 
