@@ -41,7 +41,7 @@ type Mutation {
 }
 
 type Subscription {
-  comment(postId: ID!): Comments!
+  comment(postId: ID): CommentsSubscriptionPayload!
   post: PostsSubscriptionPayload!
 }
 
@@ -110,6 +110,17 @@ type User {
 }
 
 type PostsSubscriptionPayload {
-  mutation: String!
+  mutation: MutationType!
   data: Posts!
+}
+
+type CommentsSubscriptionPayload {
+  mutation: MutationType!
+  data: Comments!
+}
+
+enum MutationType {
+  CREATED
+  UPDATED
+  DELETED
 }

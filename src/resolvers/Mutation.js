@@ -114,12 +114,14 @@ const Mutation = {
   },
 
   // Updating the Post by the existed User
-  updatePost(parent, args, { db }, info) {
+  updatePost(parent, args, { db, pubsub }, info) {
     const { id, postData } = args;
 
     const post = db.dummyPosts.find(post => {
       return post.id === id;
     });
+
+    const originalPost = { ...post };
 
     if (!post) {
       throw new Error("Post not exists..!");
@@ -135,13 +137,36 @@ const Mutation = {
 
     if (typeof postData.published === "boolean") {
       post.published = postData.published;
+
+      if (originalPost.published && !post.published) {
+        pubsub.publish("post", {
+          post: {
+            mutation: "DELETED",
+            data: originalPost
+          }
+        });
+      } else if (!originalPost.published && post.published) {
+        pubsub.publish("post", {
+          post: {
+            mutation: "CREATED",
+            data: post
+          }
+        });
+      }
+    } else if (post.published) {
+      pubsub.publish("post", {
+        post: {
+          mutation: "UPDATED",
+          data: post
+        }
+      });
     }
 
     return post;
   },
 
   // Deleting the Post
-  deletePost(parent, args, { db }, info) {
+  deletePost(parent, args, { db, pubsub }, info) {
     const postIndex = db.dummyPosts.findIndex(post => {
       return post.id === args.id;
     });
@@ -154,6 +179,15 @@ const Mutation = {
     db.dummyComments = db.dummyComments.filter(comment => {
       return comment.post !== args.id;
     });
+
+    if (deletedPosts[0].published) {
+      pubsub.publish("post", {
+        post: {
+          mutation: "DELETED",
+          data: deletedPosts[0]
+        }
+      });
+    }
 
     return deletedPosts[0];
   },
@@ -179,14 +213,17 @@ const Mutation = {
       ...args.commentData
     };
     db.dummyComments.push(comment);
-    pubsub.publish(`comment ${args.commentData.post}`, {
-      comment: comment
+    pubsub.publish("comment", {
+      comment: {
+        mutation: "CREATED",
+        data: comment
+      }
     });
     return comment;
   },
 
   // Updating the comment
-  updateComment(parent, args, { db }, info) {
+  updateComment(parent, args, { db, pubsub }, info) {
     const { id, commentData } = args;
 
     const comment = db.dummyComments.find(comment => {
@@ -200,12 +237,17 @@ const Mutation = {
     if (typeof commentData.commentText === "string") {
       comment.commentText = commentData.commentText;
     }
-
+    pubsub.publish("comment", {
+      comment: {
+        mutation: "UPDATED",
+        data: comment
+      }
+    });
     return comment;
   },
 
   // Deleting the Comment
-  deleteComment(parent, args, { db }, info) {
+  deleteComment(parent, args, { db, pubsub }, info) {
     const commentIndex = db.dummyComments.findIndex(comment => {
       return comment.id === args.id;
     });
@@ -215,7 +257,12 @@ const Mutation = {
     }
 
     const deletedComments = db.dummyComments.splice(commentIndex, 1);
-
+    pubsub.publish("comment", {
+      comment: {
+        mutation: "DELETED",
+        data: deletedComments[0]
+      }
+    });
     return deletedComments[0];
   }
 };
